@@ -97,7 +97,7 @@ def built_FSAC_parser():
     parser.add_argument('--penalty_start', type=int, default=1200000)
 
     # env
-    parser.add_argument('--env_id', default='Safexp-CarPush2-v0')
+    parser.add_argument('--env_id', default='Safexp-CarGoal2-v0')
     parser.add_argument('--num_agent', type=int, default=1)
     parser.add_argument('--num_future_data', type=int, default=0)
 
