@@ -19,10 +19,10 @@ import ray
 
 from buffer import *
 from evaluator import Evaluator, EvaluatorWithCost
-from learners.ampc import AMPCLearner
-from learners.mpg_learner import MPGLearner
-from learners.nadp import NADPLearner
-from learners.ndpg import NDPGLearner
+# from learners.ampc import AMPCLearner
+# from learners.mpg_learner import MPGLearner
+# from learners.nadp import NADPLearner
+# from learners.ndpg import NDPGLearner
 from learners.sac import SACLearner, SACLearnerWithCost
 from learners.td3 import TD3Learner
 from optimizer import OffPolicyAsyncOptimizer, SingleProcessOffPolicyOptimizer, OffPolicyAsyncOptimizerWithCost
@@ -39,10 +39,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['OMP_NUM_THREADS'] = '1'
 NAME2WORKERCLS = dict([('OffPolicyWorker', OffPolicyWorker),
                        ('OffPolicyWorkerWithCost', OffPolicyWorkerWithCost)])
-NAME2LEARNERCLS = dict([('MPG', MPGLearner),
-                        ('AMPC', AMPCLearner),
-                        ('NADP', NADPLearner),
-                        ('NDPG', NDPGLearner),
+NAME2LEARNERCLS = dict([
                         ('TD3', TD3Learner),
                         ('SAC', SACLearner),
                         ('FSAC', SACLearnerWithCost)
@@ -93,11 +90,11 @@ def built_FSAC_parser():
     parser.add_argument('--buffer_type', type=str, default='cost')
     parser.add_argument('--optimizer_type', type=str, default='OffPolicyAsyncWithCost') # SingleProcessOffPolicy OffPolicyAsyncWithCost
     parser.add_argument('--off_policy', type=str, default=True)
-    parser.add_argument('--random_seed', type=int, default=0)
+    parser.add_argument('--random_seed', type=int, default=1)
     parser.add_argument('--penalty_start', type=int, default=1200000)
 
     # env
-    parser.add_argument('--env_id', default='Safexp-CarGoal2-v0')
+    parser.add_argument('--env_id', default='Safexp-PointPush1-v0')
     parser.add_argument('--num_agent', type=int, default=1)
     parser.add_argument('--num_future_data', type=int, default=0)
 
@@ -109,7 +106,7 @@ def built_FSAC_parser():
     parser.add_argument('--gradient_clip_norm', type=float, default=10.)
     parser.add_argument('--lam_gradient_clip_norm', type=float, default=3.)
     parser.add_argument('--num_batch_reuse', type=int, default=1)
-    parser.add_argument('--cost_lim', type=float, default=10.0)
+    parser.add_argument('--cost_lim', type=float, default=4.0)
     parser.add_argument('--mlp_lam', default=False) # True: fsac, false: sac-lagrangian todo: add to new algo
     parser.add_argument('--double_QC', type=bool, default=False)
 
