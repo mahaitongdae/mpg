@@ -91,10 +91,10 @@ def built_FSAC_parser():
     parser.add_argument('--optimizer_type', type=str, default='OffPolicyAsyncWithCost') # SingleProcessOffPolicy OffPolicyAsyncWithCost
     parser.add_argument('--off_policy', type=str, default=True)
     parser.add_argument('--random_seed', type=int, default=1)
-    parser.add_argument('--penalty_start', type=int, default=1200000)
+    parser.add_argument('--penalty_start', type=int, default=20000000)
 
     # env
-    parser.add_argument('--env_id', default='Safexp-PointPush1-v0')
+    parser.add_argument('--env_id', default='Safexp-DoggoButton1-v0')
     parser.add_argument('--num_agent', type=int, default=1)
     parser.add_argument('--num_future_data', type=int, default=0)
 
@@ -106,8 +106,8 @@ def built_FSAC_parser():
     parser.add_argument('--gradient_clip_norm', type=float, default=10.)
     parser.add_argument('--lam_gradient_clip_norm', type=float, default=3.)
     parser.add_argument('--num_batch_reuse', type=int, default=1)
-    parser.add_argument('--cost_lim', type=float, default=4.0)
-    parser.add_argument('--mlp_lam', default=False) # True: fsac, false: sac-lagrangian todo: add to new algo
+    parser.add_argument('--cost_lim', type=float, default=20.0)
+    parser.add_argument('--mlp_lam', default=True) # True: fsac, false: sac-lagrangian todo: add to new algo
     parser.add_argument('--double_QC', type=bool, default=False)
 
     # worker
@@ -150,7 +150,7 @@ def built_FSAC_parser():
     parser.add_argument('--alpha', default='auto')  # 'auto' 0.02
     alpha = parser.parse_args().alpha
     if alpha == 'auto':
-        parser.add_argument('--target_entropy', type=float, default=-2)
+        parser.add_argument('--target_entropy', type=float, default=-12)
     parser.add_argument('--alpha_lr_schedule', type=list, default=[8e-5, 1000000, 8e-6])
     parser.add_argument('--policy_only', type=bool, default=False)
     parser.add_argument('--double_Q', type=bool, default=True)
@@ -174,16 +174,16 @@ def built_FSAC_parser():
 
     # Optimizer (PABAL)
     parser.add_argument('--max_sampled_steps', type=int, default=0)
-    parser.add_argument('--max_iter', type=int, default=3000000)
+    parser.add_argument('--max_iter', type=int, default=30000000)
     parser.add_argument('--num_workers', type=int, default=NUM_WORKER)
     parser.add_argument('--num_learners', type=int, default=NUM_LEARNER)
     parser.add_argument('--num_buffers', type=int, default=NUM_BUFFER)
     parser.add_argument('--max_weight_sync_delay', type=int, default=30)
     parser.add_argument('--grads_queue_size', type=int, default=25)
     parser.add_argument('--grads_max_reuse', type=int, default=25)
-    parser.add_argument('--eval_interval', type=int, default=5000) # 1000
-    parser.add_argument('--save_interval', type=int, default=200000) # 200000
-    parser.add_argument('--log_interval', type=int, default=100) # 100
+    parser.add_argument('--eval_interval', type=int, default=50000) # *10
+    parser.add_argument('--save_interval', type=int, default=2000000) # *10
+    parser.add_argument('--log_interval', type=int, default=1000) # *10
 
     # IO
     time_now = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
