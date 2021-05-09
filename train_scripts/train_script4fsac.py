@@ -507,6 +507,10 @@ def built_parser(alg_name):
     env = gym.make(args.env_id) #  **vars(args)
     args.obs_dim, args.act_dim = int(env.observation_space.shape[0]), int(env.action_space.shape[0])
     args.obs_scale = [1.] * args.obs_dim
+    if args.env_id.startwith('Safexp'):
+        args.safexp = True
+    else:
+        args.safexp = False
     return args
 
 def main(alg_name):

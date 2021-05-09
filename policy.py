@@ -275,6 +275,7 @@ class PolicyWithMu(tf.Module):
         self.mlp_lam = kwargs.get('mlp_lam')
         self.double_QC = kwargs.get('double_QC')
         self.penalty_start = kwargs.get('penalty_start')
+        self.safexp = kwargs.get('safexp')
 
         value_model_cls, policy_model_cls = NAME2MODELCLS[value_model_cls], \
                                             NAME2MODELCLS[policy_model_cls]
@@ -339,18 +340,16 @@ class PolicyWithMu(tf.Module):
             self.optimizers = (self.policy_optimizer,)
         else:
             if self.double_Q:
-                if self.double_QC:
-                    assert self.target
-                    self.target_models = (self.Q1_target, self.Q2_target, self.QC1_target, self.QC2_target,
-                                          self.policy_target,)
-                    self.models = (self.Q1, self.Q2, self.QC1, self.QC2, self.policy,self.Lam,)
-                    self.optimizers = (self.Q1_optimizer, self.Q2_optimizer, self.QC1_optimizer, self.QC2_optimizer,
-                                       self.policy_optimizer,self.Lam_optimizer,)
-                else:
+                if self.safexp:
                     self.target_models = (self.Q1_target, self.Q2_target, self.QC1_target,
                                           self.policy_target,)
                     self.models = (self.Q1, self.Q2, self.QC1, self.policy, self.Lam,)
                     self.optimizers = (self.Q1_optimizer, self.Q2_optimizer, self.QC1_optimizer,
+                                       self.policy_optimizer, self.Lam_optimizer,)
+                else:
+                    self.target_models = (self.Q1_target, self.Q2_target, self.policy_target,)
+                    self.models = (self.Q1, self.Q2, self.policy, self.Lam,)
+                    self.optimizers = (self.Q1_optimizer, self.Q2_optimizer,
                                        self.policy_optimizer, self.Lam_optimizer,)
             elif self.target:
                 self.target_models = (self.Q1_target, self.policy_target,)
@@ -404,19 +403,17 @@ class PolicyWithMu(tf.Module):
                 q_weights_len = len(self.Q1.trainable_weights)
                 policy_weights_len = len(self.policy.trainable_weights)
                 lam_weights_len = len(self.Lam.trainable_weights)
-                q1_grad, q2_grad, qc1_grad, qc2_grad, policy_grad =\
+                q1_grad, q2_grad, qc1_grad, policy_grad =\
                     grads[:q_weights_len], \
                     grads[q_weights_len:2*q_weights_len],\
                     grads[2*q_weights_len:3*q_weights_len], \
-                    grads[3 * q_weights_len:4 * q_weights_len], \
-                    grads[4 * q_weights_len:4 * q_weights_len + policy_weights_len]
+                    grads[3 * q_weights_len:3 * q_weights_len + policy_weights_len]
                 self.Q1_optimizer.apply_gradients(zip(q1_grad, self.Q1.trainable_weights))
                 self.Q2_optimizer.apply_gradients(zip(q2_grad, self.Q2.trainable_weights))
-                self.QC1_optimizer.apply_gradients(zip(qc1_grad, self.QC1.trainable_weights))
-                if self.double_QC:
-                    self.QC2_optimizer.apply_gradients(zip(qc2_grad, self.QC2.trainable_weights))
+                if self.safexp:
+                    self.QC1_optimizer.apply_gradients(zip(qc1_grad, self.QC1.trainable_weights))
                 if iteration % self.dual_ascent_interval == 0 and self.constrained and iteration > self.penalty_start:
-                    lam_grad = grads[4 * q_weights_len + policy_weights_len: 4 * q_weights_len + policy_weights_len + lam_weights_len]
+                    lam_grad = grads[3 * q_weights_len + policy_weights_len: 3 * q_weights_len + policy_weights_len + lam_weights_len]
                     self.Lam_optimizer.apply_gradients(zip(lam_grad, self.Lam.trainable_weights))
                 if iteration % self.delay_update == 0:
                     self.policy_optimizer.apply_gradients(zip(policy_grad, self.policy.trainable_weights))
