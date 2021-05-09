@@ -19,10 +19,10 @@ import ray
 
 from buffer import *
 from evaluator import Evaluator, EvaluatorWithCost
-# from learners.ampc import AMPCLearner
-# from learners.mpg_learner import MPGLearner
-# from learners.nadp import NADPLearner
-# from learners.ndpg import NDPGLearner
+from learners.ampc import AMPCLearner
+from learners.mpg_learner import MPGLearner
+from learners.nadp import NADPLearner
+from learners.ndpg import NDPGLearner
 from learners.sac import SACLearner, SACLearnerWithCost
 from learners.td3 import TD3Learner
 from optimizer import OffPolicyAsyncOptimizer, SingleProcessOffPolicyOptimizer, OffPolicyAsyncOptimizerWithCost
@@ -39,10 +39,14 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['OMP_NUM_THREADS'] = '1'
 NAME2WORKERCLS = dict([('OffPolicyWorker', OffPolicyWorker),
                        ('OffPolicyWorkerWithCost', OffPolicyWorkerWithCost)])
-NAME2LEARNERCLS = dict([
+NAME2LEARNERCLS = dict([('MPG', MPGLearner),
+                        ('AMPC', AMPCLearner),
+                        ('NADP', NADPLearner),
+                        ('NDPG', NDPGLearner),
                         ('TD3', TD3Learner),
                         ('SAC', SACLearnerWithCost),
-                        ('FSAC', SACLearnerWithCost)
+                        ('FSAC', SACLearnerWithCost),
+                        ('SAC-Lagrangian', SACLearnerWithCost)
                         ])
 NAME2BUFFERCLS = dict([('normal', ReplayBuffer),
                        ('priority', PrioritizedReplayBuffer),
@@ -54,9 +58,9 @@ NAME2OPTIMIZERCLS = dict([('OffPolicyAsync', OffPolicyAsyncOptimizer),
                           ('SingleProcessOffPolicy', SingleProcessOffPolicyOptimizer)])
 NAME2POLICYCLS = dict([('PolicyWithQs', PolicyWithQs),('PolicyWithMu',PolicyWithMu)])
 NAME2EVALUATORCLS = dict([('Evaluator', Evaluator), ('EvaluatorWithCost', EvaluatorWithCost), ('None', None)])
-NUM_WORKER = 4
-NUM_LEARNER = 4
-NUM_BUFFER = 4
+NUM_WORKER = 10
+NUM_LEARNER = 10
+NUM_BUFFER = 10
 
 def built_FSAC_parser():
     parser = argparse.ArgumentParser()
@@ -65,18 +69,18 @@ def built_FSAC_parser():
     mode = parser.parse_args().mode
 
     if mode == 'testing':
-        test_dir = '../results/FSAC/PointButton1-2021-04-18-14-45-12'
+        test_dir = '../results/FSAC/experiment-2021-04-14-06-36-37_success'
         params = json.loads(open(test_dir + '/config.json').read())
         time_now = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         test_log_dir = params['log_dir'] + '/tester/test-{}'.format(time_now)
         params.update(dict(test_dir=test_dir,
                            test_iter_list=[3000000],
                            test_log_dir=test_log_dir,
-                           num_eval_episode=50,
+                           num_eval_episode=100,
                            num_eval_agent=1,
                            eval_log_interval=1,
                            fixed_steps=1000,
-                           eval_render=False))
+                           eval_render=True))
         for key, val in params.items():
             parser.add_argument("-" + key, default=val)
         return parser.parse_args()
@@ -90,11 +94,12 @@ def built_FSAC_parser():
     parser.add_argument('--buffer_type', type=str, default='cost')
     parser.add_argument('--optimizer_type', type=str, default='OffPolicyAsyncWithCost') # SingleProcessOffPolicy OffPolicyAsyncWithCost
     parser.add_argument('--off_policy', type=str, default=True)
-    parser.add_argument('--random_seed', type=int, default=4)
+    parser.add_argument('--random_seed', type=int, default=2)
     parser.add_argument('--penalty_start', type=int, default=1500000)
+    parser.add_argument('--demo', type=bool, default=False)
 
     # env
-    parser.add_argument('--env_id', default='Safexp-CarGoal2-v0')
+    parser.add_argument('--env_id', default='Safexp-PointButton1-v0')
     parser.add_argument('--num_agent', type=int, default=1)
     parser.add_argument('--num_future_data', type=int, default=0)
 
@@ -106,7 +111,7 @@ def built_FSAC_parser():
     parser.add_argument('--gradient_clip_norm', type=float, default=10.)
     parser.add_argument('--lam_gradient_clip_norm', type=float, default=3.)
     parser.add_argument('--num_batch_reuse', type=int, default=1)
-    parser.add_argument('--cost_lim', type=float, default=10.0)
+    parser.add_argument('--cost_lim', type=float, default=4.0)
     parser.add_argument('--mlp_lam', default=True) # True: fsac, false: sac-lagrangian todo: add to new algo
     parser.add_argument('--double_QC', type=bool, default=False)
 
@@ -178,17 +183,20 @@ def built_FSAC_parser():
     parser.add_argument('--num_workers', type=int, default=NUM_WORKER)
     parser.add_argument('--num_learners', type=int, default=NUM_LEARNER)
     parser.add_argument('--num_buffers', type=int, default=NUM_BUFFER)
-    parser.add_argument('--max_weight_sync_delay', type=int, default=300)
+    parser.add_argument('--max_weight_sync_delay', type=int, default=30)
     parser.add_argument('--grads_queue_size', type=int, default=25)
-    parser.add_argument('--grads_max_reuse', type=int, default=25)
+    parser.add_argument('--grads_max_reuse', type=int, default=10)
     parser.add_argument('--eval_interval', type=int, default=5000) # 1000
-    parser.add_argument('--save_interval', type=int, default=500000) # 200000
+    parser.add_argument('--save_interval', type=int, default=200000) # 200000
     parser.add_argument('--log_interval', type=int, default=100) # 100
 
     # IO
     time_now = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     env_id = parser.parse_args().env_id
-    results_dir = '../results/FSAC/{experiment}-{time}'.format(experiment=env_id.split('-')[1], time=time_now)
+    task = env_id.split('-')[1]
+    results_dir = '../results/FSAC/{task}/{experiment}-{time}'.format(task=task[:-1],
+                                                                      experiment=task,
+                                                                      time=time_now)
     parser.add_argument('--result_dir', type=str, default=results_dir)
     parser.add_argument('--log_dir', type=str, default=results_dir + '/logs')
     parser.add_argument('--model_dir', type=str, default=results_dir + '/models')
@@ -221,20 +229,22 @@ def built_SAC_Lagrangian_parser():
             parser.add_argument("-" + key, default=val)
         return parser.parse_args()
 
-    parser.add_argument('--motivation', type=str, default='single qc test')  # training testing
+    parser.add_argument('--motivation', type=str, default='sac lagrangian test')  # training testing
 
     # trainer
     parser.add_argument('--policy_type', type=str, default='PolicyWithMu')
     parser.add_argument('--worker_type', type=str, default='OffPolicyWorkerWithCost')
     parser.add_argument('--evaluator_type', type=str, default='EvaluatorWithCost')
     parser.add_argument('--buffer_type', type=str, default='cost')
-    parser.add_argument('--optimizer_type', type=str, default='SingleProcessOffPolicy') # SingleProcessOffPolicy OffPolicyAsyncWithCost
+    parser.add_argument('--optimizer_type', type=str,
+                        default='OffPolicyAsyncWithCost')  # SingleProcessOffPolicy OffPolicyAsyncWithCost
     parser.add_argument('--off_policy', type=str, default=True)
-    parser.add_argument('--random_seed', type=int, default=0)
-    parser.add_argument('--penalty_start', type=int, default=0)
+    parser.add_argument('--random_seed', type=int, default=2)
+    parser.add_argument('--penalty_start', type=int, default=1500000)
+    parser.add_argument('--demo', type=bool, default=False)
 
     # env
-    parser.add_argument('--env_id', default='Safexp-PointButton1-v0')
+    parser.add_argument('--env_id', default='Safexp-CarGoal2-v0')
     parser.add_argument('--num_agent', type=int, default=1)
     parser.add_argument('--num_future_data', type=int, default=0)
 
@@ -244,6 +254,7 @@ def built_SAC_Lagrangian_parser():
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--cost_gamma', type=float, default=0.99)
     parser.add_argument('--gradient_clip_norm', type=float, default=10.)
+    parser.add_argument('--lam_gradient_clip_norm', type=float, default=3.)
     parser.add_argument('--num_batch_reuse', type=int, default=1)
     parser.add_argument('--cost_lim', type=float, default=10.0)
     parser.add_argument('--mlp_lam', default=False)
@@ -320,13 +331,17 @@ def built_SAC_Lagrangian_parser():
     parser.add_argument('--max_weight_sync_delay', type=int, default=30)
     parser.add_argument('--grads_queue_size', type=int, default=25)
     parser.add_argument('--grads_max_reuse', type=int, default=10)
-    parser.add_argument('--eval_interval', type=int, default=5000)
-    parser.add_argument('--save_interval', type=int, default=200000)
-    parser.add_argument('--log_interval', type=int, default=100)
+    parser.add_argument('--eval_interval', type=int, default=5000)  # 1000
+    parser.add_argument('--save_interval', type=int, default=200000)  # 200000
+    parser.add_argument('--log_interval', type=int, default=100)  # 100
 
     # IO
     time_now = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    results_dir = '../results/FSAC/experiment-{time}'.format(time=time_now)
+    env_id = parser.parse_args().env_id
+    task = env_id.split('-')[1]
+    results_dir = '../results/SAC-Lagrangian/{task}/{experiment}-{time}'.format(task=task[:-1],
+                                                                      experiment=task,
+                                                                      time=time_now)
     parser.add_argument('--result_dir', type=str, default=results_dir)
     parser.add_argument('--log_dir', type=str, default=results_dir + '/logs')
     parser.add_argument('--model_dir', type=str, default=results_dir + '/models')
@@ -369,12 +384,12 @@ def built_SAC_UC_parser():
     parser.add_argument('--optimizer_type', type=str,
                         default='OffPolicyAsyncWithCost')  # SingleProcessOffPolicy OffPolicyAsyncWithCost
     parser.add_argument('--off_policy', type=str, default=True)
-    parser.add_argument('--random_seed', type=int, default=5)
+    parser.add_argument('--random_seed', type=int, default=2)
     parser.add_argument('--penalty_start', type=int, default=3000000)
     parser.add_argument('--demo', type=bool, default=False)
 
     # env
-    parser.add_argument('--env_id', default='Safexp-PointGoal2-v0')
+    parser.add_argument('--env_id', default='Safexp-PointButton1-v0')
     parser.add_argument('--num_agent', type=int, default=1)
     parser.add_argument('--num_future_data', type=int, default=0)
 
@@ -396,7 +411,7 @@ def built_SAC_UC_parser():
     parser.add_argument('--explore_sigma', type=float, default=None)
 
     # buffer
-    parser.add_argument('--max_buffer_size', type=int, default=50000)
+    parser.add_argument('--max_buffer_size', type=int, default=500000)
     parser.add_argument('--replay_starts', type=int, default=3000)
     parser.add_argument('--replay_batch_size', type=int, default=2048)
     parser.add_argument('--replay_alpha', type=float, default=0.6)
@@ -461,9 +476,9 @@ def built_SAC_UC_parser():
     parser.add_argument('--max_weight_sync_delay', type=int, default=30)
     parser.add_argument('--grads_queue_size', type=int, default=25)
     parser.add_argument('--grads_max_reuse', type=int, default=10)
-    parser.add_argument('--eval_interval', type=int, default=1000)  # 1000
+    parser.add_argument('--eval_interval', type=int, default=20000)  # 1000
     parser.add_argument('--save_interval', type=int, default=500000)  # 200000
-    parser.add_argument('--log_interval', type=int, default=100)  # 100
+    parser.add_argument('--log_interval', type=int, default=1000)  # 100
 
     # IO
     time_now = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -498,7 +513,7 @@ def main(alg_name):
     args = built_parser(alg_name)
     logger.info('begin training agents with parameter {}'.format(str(args)))
     if args.mode == 'training':
-        ray.init(object_store_memory=8192*1024*1024)
+        ray.init(object_store_memory=32768*1024*1024)
         os.makedirs(args.result_dir)
         with open(args.result_dir + '/config.json', 'w', encoding='utf-8') as f:
             json.dump(vars(args), f, ensure_ascii=False, indent=4)
@@ -528,4 +543,4 @@ def main(alg_name):
 
 
 if __name__ == '__main__':
-    main('FSAC')
+    main('SAC')
