@@ -42,6 +42,7 @@ NAME2WORKERCLS = dict([('OffPolicyWorker', OffPolicyWorker),
 NAME2LEARNERCLS = dict([
                         ('TD3', TD3Learner),
                         ('SAC', SACLearnerWithCost),
+                        ('SAC-Lagrangian', SACLearnerWithCost),
                         ('FSAC', SACLearnerWithCost)
                         ])
 NAME2BUFFERCLS = dict([('normal', ReplayBuffer),
@@ -54,9 +55,9 @@ NAME2OPTIMIZERCLS = dict([('OffPolicyAsync', OffPolicyAsyncOptimizer),
                           ('SingleProcessOffPolicy', SingleProcessOffPolicyOptimizer)])
 NAME2POLICYCLS = dict([('PolicyWithQs', PolicyWithQs),('PolicyWithMu',PolicyWithMu)])
 NAME2EVALUATORCLS = dict([('Evaluator', Evaluator), ('EvaluatorWithCost', EvaluatorWithCost), ('None', None)])
-NUM_WORKER = 4
-NUM_LEARNER = 4
-NUM_BUFFER = 4
+NUM_WORKER = 1
+NUM_LEARNER = 1
+NUM_BUFFER = 1
 
 def built_FSAC_parser():
     parser = argparse.ArgumentParser()
@@ -228,7 +229,7 @@ def built_SAC_Lagrangian_parser():
     parser.add_argument('--worker_type', type=str, default='OffPolicyWorkerWithCost')
     parser.add_argument('--evaluator_type', type=str, default='EvaluatorWithCost')
     parser.add_argument('--buffer_type', type=str, default='cost')
-    parser.add_argument('--optimizer_type', type=str, default='SingleProcessOffPolicy') # SingleProcessOffPolicy OffPolicyAsyncWithCost
+    parser.add_argument('--optimizer_type', type=str, default='OffPolicyAsyncWithCost') # SingleProcessOffPolicy OffPolicyAsyncWithCost
     parser.add_argument('--off_policy', type=str, default=True)
     parser.add_argument('--random_seed', type=int, default=5)
     parser.add_argument('--penalty_start', type=int, default=1500000)
@@ -244,6 +245,7 @@ def built_SAC_Lagrangian_parser():
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--cost_gamma', type=float, default=0.99)
     parser.add_argument('--gradient_clip_norm', type=float, default=10.)
+    parser.add_argument('--lam_gradient_clip_norm', type=float, default=3.)
     parser.add_argument('--num_batch_reuse', type=int, default=1)
     parser.add_argument('--cost_lim', type=float, default=10.0)
     parser.add_argument('--mlp_lam', default=False)
@@ -398,7 +400,7 @@ def built_SAC_UC_parser():
     # buffer
     parser.add_argument('--max_buffer_size', type=int, default=50000)
     parser.add_argument('--replay_starts', type=int, default=3000)
-    parser.add_argument('--replay_batch_size', type=int, default=2048)
+    parser.add_argument('--replay_batch_size', type=int, default=1024)
     parser.add_argument('--replay_alpha', type=float, default=0.6)
     parser.add_argument('--replay_beta', type=float, default=0.4)
     parser.add_argument('--buffer_log_interval', type=int, default=40000)

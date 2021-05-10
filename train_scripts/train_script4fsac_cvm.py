@@ -90,7 +90,7 @@ def built_FSAC_parser():
     parser.add_argument('--buffer_type', type=str, default='cost')
     parser.add_argument('--optimizer_type', type=str, default='OffPolicyAsyncWithCost') # SingleProcessOffPolicy OffPolicyAsyncWithCost
     parser.add_argument('--off_policy', type=str, default=True)
-    parser.add_argument('--random_seed', type=int, default=4)
+    parser.add_argument('--random_seed', type=int, default=6)
     parser.add_argument('--penalty_start', type=int, default=1500000)
 
     # env
@@ -138,20 +138,20 @@ def built_FSAC_parser():
     parser.add_argument('--value_num_hidden_layers', type=int, default=2)
     parser.add_argument('--value_num_hidden_units', type=int, default=256)
     parser.add_argument('--value_hidden_activation', type=str, default='elu')
-    parser.add_argument('--value_lr_schedule', type=list, default=[8e-5, 1000000, 8e-6])
-    parser.add_argument('--cost_value_lr_schedule', type=list, default=[8e-5, 1000000, 8e-6])
+    parser.add_argument('--value_lr_schedule', type=list, default=[8e-5, 1000000, 1e-6])
+    parser.add_argument('--cost_value_lr_schedule', type=list, default=[8e-5, 1000000, 1e-6])
     parser.add_argument('--policy_model_cls', type=str, default='MLP')
     parser.add_argument('--policy_num_hidden_layers', type=int, default=2)
     parser.add_argument('--policy_num_hidden_units', type=int, default=256)
     parser.add_argument('--policy_hidden_activation', type=str, default='elu')
     parser.add_argument('--policy_out_activation', type=str, default='linear')
-    parser.add_argument('--policy_lr_schedule', type=list, default=[3e-5, 1000000, 3e-6])
-    parser.add_argument('--lam_lr_schedule', type=list, default=[5e-6, 300000, 3e-6])
+    parser.add_argument('--policy_lr_schedule', type=list, default=[3e-5, 1000000, 1e-6])
+    parser.add_argument('--lam_lr_schedule', type=list, default=[5e-6, 300000, 1e-6])
     parser.add_argument('--alpha', default='auto')  # 'auto' 0.02
     alpha = parser.parse_args().alpha
     if alpha == 'auto':
         parser.add_argument('--target_entropy', type=float, default=-2)
-    parser.add_argument('--alpha_lr_schedule', type=list, default=[8e-5, 1000000, 8e-6])
+    parser.add_argument('--alpha_lr_schedule', type=list, default=[3e-5, 1000000, 1e-6])
     parser.add_argument('--policy_only', type=bool, default=False)
     parser.add_argument('--double_Q', type=bool, default=True)
     parser.add_argument('--target', type=bool, default=True)
@@ -180,10 +180,10 @@ def built_FSAC_parser():
     parser.add_argument('--num_buffers', type=int, default=NUM_BUFFER)
     parser.add_argument('--max_weight_sync_delay', type=int, default=300)
     parser.add_argument('--grads_queue_size', type=int, default=25)
-    parser.add_argument('--grads_max_reuse', type=int, default=25)
-    parser.add_argument('--eval_interval', type=int, default=5000) # 1000
+    parser.add_argument('--grads_max_reuse', type=int, default=8)
+    parser.add_argument('--eval_interval', type=int, default=10000) # 1000
     parser.add_argument('--save_interval', type=int, default=500000) # 200000
-    parser.add_argument('--log_interval', type=int, default=100) # 100
+    parser.add_argument('--log_interval', type=int, default=1000) # 100
 
     # IO
     time_now = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -193,7 +193,7 @@ def built_FSAC_parser():
     parser.add_argument('--log_dir', type=str, default=results_dir + '/logs')
     parser.add_argument('--model_dir', type=str, default=results_dir + '/models')
     parser.add_argument('--model_load_dir', type=str, default=None)
-    parser.add_argument('--model_load_ite', type=int, default=None)
+    parser.add_argument('--model_load_ite', type=int, default=1000000)
     parser.add_argument('--ppc_load_dir', type=str, default=None)
 
     return parser.parse_args()
