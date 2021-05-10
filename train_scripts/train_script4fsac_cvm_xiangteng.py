@@ -42,6 +42,7 @@ NAME2WORKERCLS = dict([('OffPolicyWorker', OffPolicyWorker),
 NAME2LEARNERCLS = dict([
                         ('TD3', TD3Learner),
                         ('SAC', SACLearnerWithCost),
+                        ('SAC-Lagrangian', SACLearnerWithCost),
                         ('FSAC', SACLearnerWithCost)
                         ])
 NAME2BUFFERCLS = dict([('normal', ReplayBuffer),
@@ -228,13 +229,14 @@ def built_SAC_Lagrangian_parser():
     parser.add_argument('--worker_type', type=str, default='OffPolicyWorkerWithCost')
     parser.add_argument('--evaluator_type', type=str, default='EvaluatorWithCost')
     parser.add_argument('--buffer_type', type=str, default='cost')
-    parser.add_argument('--optimizer_type', type=str, default='SingleProcessOffPolicy') # SingleProcessOffPolicy OffPolicyAsyncWithCost
+    parser.add_argument('--optimizer_type', type=str,
+                        default='OffPolicyAsyncWithCost')  # SingleProcessOffPolicy OffPolicyAsyncWithCost
     parser.add_argument('--off_policy', type=str, default=True)
     parser.add_argument('--random_seed', type=int, default=5)
     parser.add_argument('--penalty_start', type=int, default=1500000)
 
     # env
-    parser.add_argument('--env_id', default='Safexp-CarGoal2-v0')
+    parser.add_argument('--env_id', default='Safexp-PointGoal2-v0')
     parser.add_argument('--num_agent', type=int, default=1)
     parser.add_argument('--num_future_data', type=int, default=0)
 
@@ -244,6 +246,7 @@ def built_SAC_Lagrangian_parser():
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--cost_gamma', type=float, default=0.99)
     parser.add_argument('--gradient_clip_norm', type=float, default=10.)
+    parser.add_argument('--lam_gradient_clip_norm', type=float, default=3.)
     parser.add_argument('--num_batch_reuse', type=int, default=1)
     parser.add_argument('--cost_lim', type=float, default=10.0)
     parser.add_argument('--mlp_lam', default=False)
@@ -257,7 +260,7 @@ def built_SAC_Lagrangian_parser():
     # buffer
     parser.add_argument('--max_buffer_size', type=int, default=500000)
     parser.add_argument('--replay_starts', type=int, default=3000)
-    parser.add_argument('--replay_batch_size', type=int, default=2048)
+    parser.add_argument('--replay_batch_size', type=int, default=1024)
     parser.add_argument('--replay_alpha', type=float, default=0.6)
     parser.add_argument('--replay_beta', type=float, default=0.4)
     parser.add_argument('--buffer_log_interval', type=int, default=40000)
@@ -277,20 +280,20 @@ def built_SAC_Lagrangian_parser():
     parser.add_argument('--value_num_hidden_layers', type=int, default=2)
     parser.add_argument('--value_num_hidden_units', type=int, default=256)
     parser.add_argument('--value_hidden_activation', type=str, default='elu')
-    parser.add_argument('--value_lr_schedule', type=list, default=[8e-5, 1000000, 8e-6])
-    parser.add_argument('--cost_value_lr_schedule', type=list, default=[8e-5, 1000000, 8e-6])
+    parser.add_argument('--value_lr_schedule', type=list, default=[8e-5, 1000000, 1e-6])
+    parser.add_argument('--cost_value_lr_schedule', type=list, default=[8e-5, 1000000, 1e-6])
     parser.add_argument('--policy_model_cls', type=str, default='MLP')
     parser.add_argument('--policy_num_hidden_layers', type=int, default=2)
     parser.add_argument('--policy_num_hidden_units', type=int, default=256)
     parser.add_argument('--policy_hidden_activation', type=str, default='elu')
     parser.add_argument('--policy_out_activation', type=str, default='linear')
-    parser.add_argument('--policy_lr_schedule', type=list, default=[3e-5, 1000000, 3e-6])
-    parser.add_argument('--lam_lr_schedule', type=list, default=[5e-5, 1000000, 5e-6])
+    parser.add_argument('--policy_lr_schedule', type=list, default=[3e-5, 600000, 1e-6])
+    parser.add_argument('--lam_lr_schedule', type=list, default=[5e-5, 250000, 1e-6])
     parser.add_argument('--alpha', default='auto')  # 'auto' 0.02
     alpha = parser.parse_args().alpha
     if alpha == 'auto':
         parser.add_argument('--target_entropy', type=float, default=-2)
-    parser.add_argument('--alpha_lr_schedule', type=list, default=[8e-5, 1000000, 8e-6])
+    parser.add_argument('--alpha_lr_schedule', type=list, default=[8e-5, 600000, 1e-6])
     parser.add_argument('--policy_only', type=bool, default=False)
     parser.add_argument('--double_Q', type=bool, default=True)
     parser.add_argument('--target', type=bool, default=True)
@@ -326,7 +329,11 @@ def built_SAC_Lagrangian_parser():
 
     # IO
     time_now = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    results_dir = '../results/FSAC/experiment-{time}'.format(time=time_now)
+    env_id = parser.parse_args().env_id
+    task = env_id.split('-')[1]
+    results_dir = '../results/SAC-Lagrangian/{task}/{experiment}-{time}'.format(task=task[:-1],
+                                                                      experiment=task,
+                                                                      time=time_now)
     parser.add_argument('--result_dir', type=str, default=results_dir)
     parser.add_argument('--log_dir', type=str, default=results_dir + '/logs')
     parser.add_argument('--model_dir', type=str, default=results_dir + '/models')
