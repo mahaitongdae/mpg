@@ -121,7 +121,7 @@ def built_FSAC_parser():
     parser.add_argument('--explore_sigma', type=float, default=None)
 
     # buffer
-    parser.add_argument('--max_buffer_size', type=int, default=50000)
+    parser.add_argument('--max_buffer_size', type=int, default=500000)
     parser.add_argument('--replay_starts', type=int, default=3000)
     parser.add_argument('--replay_batch_size', type=int, default=2048)
     parser.add_argument('--replay_alpha', type=float, default=0.6)
@@ -185,7 +185,7 @@ def built_FSAC_parser():
     parser.add_argument('--num_buffers', type=int, default=NUM_BUFFER)
     parser.add_argument('--max_weight_sync_delay', type=int, default=300)
     parser.add_argument('--grads_queue_size', type=int, default=25)
-    parser.add_argument('--grads_max_reuse', type=int, default=8)
+    parser.add_argument('--grads_max_reuse', type=int, default=4)
     parser.add_argument('--eval_interval', type=int, default=10000) # 1000
     parser.add_argument('--save_interval', type=int, default=500000) # 200000
     parser.add_argument('--log_interval', type=int, default=100) # 100
@@ -254,7 +254,7 @@ def built_SAC_Lagrangian_parser():
     parser.add_argument('--constrained', default=True)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--cost_gamma', type=float, default=0.99)
-    parser.add_argument('--gradient_clip_norm', type=float, default=10.)
+    parser.add_argument('--gradient_clip_norm', type=float, default=20.)
     parser.add_argument('--lam_gradient_clip_norm', type=float, default=3.)
     parser.add_argument('--num_batch_reuse', type=int, default=1)
     parser.add_argument('--cost_lim', type=float, default=10.0)
@@ -514,7 +514,7 @@ def main(alg_name):
     args = built_parser(alg_name)
     logger.info('begin training agents with parameter {}'.format(str(args)))
     if args.mode == 'training':
-        ray.init(object_store_memory=32768*1024*1024)
+        ray.init(object_store_memory=8192*1024*1024)
         os.makedirs(args.result_dir)
         with open(args.result_dir + '/config.json', 'w', encoding='utf-8') as f:
             json.dump(vars(args), f, ensure_ascii=False, indent=4)
