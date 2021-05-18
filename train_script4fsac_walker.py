@@ -66,7 +66,7 @@ def built_FSAC_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--mode', type=str, default='training') # training testing
-    parser.add_argument('--random_seed', type=int, default=2)
+    parser.add_argument('--random_seed', type=int, default=0)
     mode = parser.parse_args().mode
 
     if mode == 'testing':
@@ -111,7 +111,7 @@ def built_FSAC_parser():
     parser.add_argument('--gradient_clip_norm', type=float, default=10.)
     parser.add_argument('--lam_gradient_clip_norm', type=float, default=3.)
     parser.add_argument('--num_batch_reuse', type=int, default=1)
-    parser.add_argument('--cost_lim', type=float, default=3.0)
+    parser.add_argument('--cost_lim', type=float, default=1.5)
     parser.add_argument('--mlp_lam', default=True) # True: fsac, false: sac-lagrangian todo: add to new algo
     parser.add_argument('--double_QC', type=bool, default=False)
 
