@@ -129,9 +129,10 @@ class UpdateThread(threading.Thread):
             self.evaluator.set_weights.remote(self.local_worker.get_weights())
             if self.args.obs_ptype == 'normalize' or self.args.rew_ptype == 'normalize':
                 self.evaluator.set_ppc_params.remote(self.local_worker.get_ppc_params())
-            over_cost_lim = self.evaluator.run_evaluation.remote(self.iteration)
-            self.ascent += ray.get(over_cost_lim)
+            mean_metric_dict = ray.get(self.evaluator.run_evaluation.remote(self.iteration))
+            self.ascent += (mean_metric_dict['episode_velo_mean'] > self.args.cost_lim)
             logger.info('ascent: {}'.format(self.ascent))
+            tf.summary.scalar('optimizer/{}'.format('ascent'), self.ascent, step=self.iteration)
 
         # save
         if self.iteration % self.args.save_interval == 0:
