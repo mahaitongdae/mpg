@@ -68,12 +68,12 @@ def built_FSAC_parser():
     mode = parser.parse_args().mode
 
     if mode == 'testing':
-        test_dir = '../results/FSAC/Ant/data2plot/Ant-2021-05-15-18-43-41-s4'
+        test_dir = '../results/FSAC/HalfCheetah/data2plot/conti240HalfCheetah-2021-05-14-22-26-58-s3'
         params = json.loads(open(test_dir + '/config.json').read())
         time_now = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         test_log_dir = params['log_dir'] + '/tester/test-{}'.format(time_now)
         params.update(dict(test_dir=test_dir,
-                           test_iter_list=[3000000],
+                           test_iter_list=[600000],
                            test_log_dir=test_log_dir,
                            num_eval_episode=5,
                            num_eval_agent=1,
