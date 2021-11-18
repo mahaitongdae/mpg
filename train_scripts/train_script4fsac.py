@@ -58,9 +58,9 @@ NAME2OPTIMIZERCLS = dict([('OffPolicyAsync', OffPolicyAsyncOptimizer),
                           ('SingleProcessOffPolicy', SingleProcessOffPolicyOptimizer)])
 NAME2POLICYCLS = dict([('PolicyWithQs', PolicyWithQs),('PolicyWithMu',PolicyWithMu)])
 NAME2EVALUATORCLS = dict([('Evaluator', Evaluator), ('EvaluatorWithCost', EvaluatorWithCost), ('None', None)])
-NUM_WORKER = 4
-NUM_LEARNER = 4
-NUM_BUFFER = 4
+NUM_WORKER = 10
+NUM_LEARNER = 10
+NUM_BUFFER = 10
 
 def built_FSAC_parser():
     parser = argparse.ArgumentParser()
@@ -99,7 +99,7 @@ def built_FSAC_parser():
     parser.add_argument('--demo', type=bool, default=False)
 
     # env
-    parser.add_argument('--env_id', default='Safexp-PointButton1-v0')
+    parser.add_argument('--env_id', default='Safexp-CustomGoal2-v0')
     parser.add_argument('--num_agent', type=int, default=1)
     parser.add_argument('--num_future_data', type=int, default=0)
 
@@ -123,7 +123,7 @@ def built_FSAC_parser():
     # buffer
     parser.add_argument('--max_buffer_size', type=int, default=500000)
     parser.add_argument('--replay_starts', type=int, default=3000)
-    parser.add_argument('--replay_batch_size', type=int, default=1024)
+    parser.add_argument('--replay_batch_size', type=int, default=256)
     parser.add_argument('--replay_alpha', type=float, default=0.6)
     parser.add_argument('--replay_beta', type=float, default=0.4)
     parser.add_argument('--buffer_log_interval', type=int, default=40000)
@@ -185,7 +185,7 @@ def built_FSAC_parser():
     parser.add_argument('--num_buffers', type=int, default=NUM_BUFFER)
     parser.add_argument('--max_weight_sync_delay', type=int, default=300)
     parser.add_argument('--grads_queue_size', type=int, default=25)
-    parser.add_argument('--grads_max_reuse', type=int, default=8)
+    parser.add_argument('--grads_max_reuse', type=int, default=0)
     parser.add_argument('--eval_interval', type=int, default=10000) # 1000
     parser.add_argument('--save_interval', type=int, default=200000) # 200000
     parser.add_argument('--log_interval', type=int, default=100) # 100
@@ -503,7 +503,9 @@ def built_parser(alg_name):
         args = built_SAC_Lagrangian_parser()
     if alg_name == 'SAC':
         args = built_SAC_UC_parser()
-
+    if 'Custom' in args.env_id:
+        from utils.custom_env_utils import register_custom_env
+        register_custom_env()
     env = gym.make(args.env_id) #  **vars(args)
     args.obs_dim, args.act_dim = int(env.observation_space.shape[0]), int(env.action_space.shape[0])
     args.obs_scale = [1.] * args.obs_dim
@@ -543,4 +545,4 @@ def main(alg_name):
 
 
 if __name__ == '__main__':
-    main('SAC')
+    main('FSAC')
